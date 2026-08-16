@@ -6,12 +6,12 @@ import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { RoleToggle, type Role } from "@/components/auth/RoleToggle";
-
+import {auth} from '@/lib/firebase/config'
 interface FormErrors {
   email?: string;
   password?: string;
 }
-
+console.log("Firebase auth initialized:", auth.app.name);
 export function LoginForm() {
   const [role, setRole] = useState<Role>("student");
   const [email, setEmail] = useState("");

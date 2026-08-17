@@ -2,44 +2,71 @@
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { RoleToggle, type Role } from "@/components/auth/RoleToggle";
-import {auth} from '@/lib/firebase/config'
+import { signInUser, getUserProfile, signOutUser } from "@/lib/firebase/auth";
+
 interface FormErrors {
   email?: string;
   password?: string;
 }
-console.log("Firebase auth initialized:", auth.app.name);
+
 export function LoginForm() {
+  const router = useRouter();
   const [role, setRole] = useState<Role>("student");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
+  const [formError, setFormError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   function validate(): boolean {
     const nextErrors: FormErrors = {};
     if (!email.trim()) nextErrors.email = "Email is required";
     else if (!/^\S+@\S+\.\S+$/.test(email)) nextErrors.email = "Enter a valid email address";
-
     if (!password) nextErrors.password = "Password is required";
-
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
   }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    setFormError(null);
     if (!validate()) return;
 
     setIsLoading(true);
     try {
-      // TODO (next step): call real auth service here, e.g.
-      // await signIn({ role, email, password })
-      await new Promise((resolve) => setTimeout(resolve, 800)); // placeholder
+      const user = await signInUser(email, password);
+      const profile = await getUserProfile(user.uid);
+
+      if (!profile) {
+        await signOutUser();
+        setFormError("No profile found for this account. Contact your administrator.");
+        return;
+      }
+      if (profile.status !== "approved") {
+        await signOutUser();
+        setFormError(
+          profile.status === "pending"
+            ? "Your account is pending approval."
+            : "Your account request was rejected. Contact your administrator."
+        );
+        return;
+      }
+      if (profile.role !== role) {
+        await signOutUser();
+        setFormError(`This account is registered as a ${profile.role}. Please select that tab.`);
+        return;
+      }
+
+      router.push(profile.role === "student" ? "/student/dashboard" : "/teacher/dashboard");
+    } catch (error) {
+      console.error("LOGIN DEBUG:", error); // temporary — remove once confirmed working
+      setFormError(error instanceof Error ? error.message : "Something went wrong.");
     } finally {
       setIsLoading(false);
     }
@@ -48,6 +75,12 @@ export function LoginForm() {
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-5">
       <RoleToggle value={role} onChange={setRole} />
+
+      {formError && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+          {formError}
+        </div>
+      )}
 
       <Input
         label="Email address"

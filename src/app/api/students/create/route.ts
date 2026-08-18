@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminAuth, adminDb } from "@/lib/firebase/admin";
-import { generateSecurePassword } from "@/lib/utils/generatePassword";
+import { generateSecurePassword } from "@/lib/utils/generatePasswords";
 import { sendCredentialsEmail } from "@/lib/email/sendPasswordEmail";
 
 export async function POST(req: NextRequest) {
@@ -25,6 +25,7 @@ export async function POST(req: NextRequest) {
 
     // 3. Generate password server-side — never chosen by the user
     const password = generateSecurePassword();
+    console.log("TEMP DEV ONLY — generated password:", password); // ⚠️ remove before final submission
 
     // 4. Create the Firebase Auth user
     const newUser = await adminAuth.createUser({ email, password, displayName: name });
@@ -43,10 +44,16 @@ export async function POST(req: NextRequest) {
       await adminDb.collection("students").doc(newUser.uid).set({ grade });
     }
 
-    // 6. Email the password — never included in this response
-    await sendCredentialsEmail({ to: email, name, password, role: "student" });
+    // 6. Email the password — never included in this response, and never blocks account creation
+    let emailSent = true;
+    try {
+      await sendCredentialsEmail({ to: email, name, password, role: "student" });
+    } catch (emailError) {
+      console.error("Email failed but account was created:", emailError instanceof Error ? emailError.message : "unknown");
+      emailSent = false;
+    }
 
-    return NextResponse.json({ success: true, uid: newUser.uid });
+    return NextResponse.json({ success: true, uid: newUser.uid, emailSent });
   } catch (error) {
     console.error("Add student error:", error instanceof Error ? error.message : "unknown");
     return NextResponse.json({ error: "Failed to create student" }, { status: 500 });

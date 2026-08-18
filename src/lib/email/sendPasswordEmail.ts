@@ -10,7 +10,7 @@ interface SendCredentialsEmailParams {
 }
 
 export async function sendCredentialsEmail({ to, name, password, role }: SendCredentialsEmailParams) {
-  await resend.emails.send({
+  const { error } = await resend.emails.send({
     from: "Success Academy <onboarding@resend.dev>",
     to,
     subject: "Your Success Academy account",
@@ -24,4 +24,8 @@ export async function sendCredentialsEmail({ to, name, password, role }: SendCre
       </div>
     `,
   });
+
+  if (error) {
+    throw new Error(`Email sending failed: ${error.message}`);
+  }
 }

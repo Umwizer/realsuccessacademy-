@@ -10,7 +10,7 @@ export function AddStudentForm() {
   const [email, setEmail] = useState("");
   const [grade, setGrade] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [message, setMessage] = useState<{ type: "success" | "error",text: string } | null>(null);
+  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -36,7 +36,12 @@ export function AddStudentForm() {
         return;
       }
 
-      setMessage({ type: "success", text: `${name} added. Login details sent to ${email}.` });
+      setMessage({
+        type: data.emailSent ? "success" : "error",
+        text: data.emailSent
+          ? `${name} added. Login details sent to ${email}.`
+          : `${name} was added, but the email failed to send (Resend test-mode limitation). Check the server terminal for the generated password.`,
+      });
       setName("");
       setEmail("");
       setGrade("");
@@ -65,4 +70,5 @@ export function AddStudentForm() {
       <Input label="Grade / Class (optional)" name="grade" value={grade} onChange={(e) => setGrade(e.target.value)} />
       <Button type="submit" isLoading={isLoading} className="w-full">Add Student</Button>
     </form>
-  )}
+  );
+}

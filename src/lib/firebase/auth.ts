@@ -14,7 +14,7 @@ export async function signInUser(email: string, password: string) {
     return credential.user;
   } catch (error) {
     const code = (error as any)?.code as string | undefined;
-    console.error("FIREBASE ERROR CODE:", code); // temporary — remove once confirmed working
+    console.error("FIREBASE ERROR CODE:", code, "| FULL ERROR:", error); // temporary — remove once confirmed working
 
     if (
       code === "auth/invalid-credential" ||
